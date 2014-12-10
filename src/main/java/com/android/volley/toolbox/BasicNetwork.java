@@ -18,6 +18,7 @@ package com.android.volley.toolbox;
 
 import android.os.SystemClock;
 
+import android.util.Log;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Cache;
 import com.android.volley.Cache.Entry;
@@ -257,11 +258,12 @@ public class BasicNetwork implements Network {
         Map<String, String> result = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
         for (int i = 0; i < headers.length; i++) {
             String key = headers[i].getName();
-            if("set-cookie".equals(key.toLowerCase()))
+            String value = headers[i].getValue();
+            if("set-cookie".equals(key.toLowerCase().trim()))//Set-Cookie
             {
                 storeCookie(headers[i].getValue());
+                value = getCookieStr();
             }
-            String value = getCookieStr();
             result.put(key, value);
         }
         return result;
@@ -271,26 +273,31 @@ public class BasicNetwork implements Network {
 
     protected static void storeCookie(String cookieStr)
     {
-        if(!cookieStr.contains(";"))
+        if(cookieStr == null || "".equals(cookieStr))
         {
             return;
         }
-        String[] array = cookieStr.split(";");
-        for(String kvStr : array)
+        StringBuilder keySB = new StringBuilder();
+        StringBuilder valueSB = new StringBuilder();
+        StringBuilder nowSB = keySB;//相当于指针，当前的char应该填充进的SB
+        for(char c:cookieStr.toCharArray())
         {
-            if(kvStr.contains("="))
+            if(c==';')
             {
-                String[] kvArray = kvStr.split("=");
-                if(kvArray.length > 1)
-                {
-                    cookieMap.put(kvArray[0], kvArray[1]);
-                }
+                cookieMap.put(keySB.toString(),valueSB.toString());
+                keySB.delete(0,keySB.length());
+                valueSB.delete(0,valueSB.length());
+                nowSB = keySB;
+                continue;
             }
-            else
+            if(c=='=')
             {
-                cookieMap.put(kvStr,"");
+                nowSB = valueSB;
+                continue;
             }
+            nowSB.append(c);
         }
+        cookieMap.put(keySB.toString(),valueSB.toString());
     }
 
     public static String getCookieStr()
@@ -306,7 +313,7 @@ public class BasicNetwork implements Network {
             }
             if(i > 0)
             {
-                sb.append(";");
+                sb.append("; ");
             }
             sb.append(key).append("=").append(cookieMap.get(key));
             i++;
