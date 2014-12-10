@@ -56,6 +56,7 @@ public class Volley {
             } else {
                 // Prior to Gingerbread, HttpUrlConnection was unreliable.
                 // See: http://android-developers.blogspot.com/2011/09/androids-http-clients.html
+
                 stack = new HttpClientStack(AndroidHttpClient.newInstance(userAgent));
             }
         }

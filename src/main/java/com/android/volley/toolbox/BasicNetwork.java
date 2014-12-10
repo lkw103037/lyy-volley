@@ -44,11 +44,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * A network performing Volley requests over an {@link HttpStack}.
@@ -93,6 +89,7 @@ public class BasicNetwork implements Network {
                 // Gather headers.
                 Map<String, String> headers = new HashMap<String, String>();
                 addCacheHeaders(headers, request.getCacheEntry());
+                headers.put("Cookie", getCookieStr());
                 httpResponse = mHttpStack.performRequest(request, headers);
                 StatusLine statusLine = httpResponse.getStatusLine();
                 int statusCode = statusLine.getStatusCode();
@@ -259,8 +256,61 @@ public class BasicNetwork implements Network {
     protected static Map<String, String> convertHeaders(Header[] headers) {
         Map<String, String> result = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
         for (int i = 0; i < headers.length; i++) {
-            result.put(headers[i].getName(), headers[i].getValue());
+            String key = headers[i].getName();
+            if("set-cookie".equals(key.toLowerCase()))
+            {
+                storeCookie(headers[i].getValue());
+            }
+            String value = getCookieStr();
+            result.put(key, value);
         }
         return result;
+    }
+
+    private static Map<String,String> cookieMap = new HashMap<String, String>();
+
+    protected static void storeCookie(String cookieStr)
+    {
+        if(!cookieStr.contains(";"))
+        {
+            return;
+        }
+        String[] array = cookieStr.split(";");
+        for(String kvStr : array)
+        {
+            if(kvStr.contains("="))
+            {
+                String[] kvArray = kvStr.split("=");
+                if(kvArray.length > 1)
+                {
+                    cookieMap.put(kvArray[0], kvArray[1]);
+                }
+            }
+            else
+            {
+                cookieMap.put(kvStr,"");
+            }
+        }
+    }
+
+    public static String getCookieStr()
+    {
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        for(String key:cookieMap.keySet())
+        {
+            String keyForCompare = key.toLowerCase().trim();
+            if("expires".equals(keyForCompare)||"max-age".equals(keyForCompare)||"path".equals(keyForCompare)||"httponly".equals(keyForCompare))
+            {
+                continue;
+            }
+            if(i > 0)
+            {
+                sb.append(";");
+            }
+            sb.append(key).append("=").append(cookieMap.get(key));
+            i++;
+        }
+        return sb.toString();
     }
 }

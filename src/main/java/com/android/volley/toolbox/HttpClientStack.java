@@ -75,8 +75,8 @@ public class HttpClientStack implements HttpStack {
     public HttpResponse performRequest(Request<?> request, Map<String, String> additionalHeaders)
             throws IOException, AuthFailureError {
         HttpUriRequest httpRequest = createHttpRequest(request, additionalHeaders);
-        addHeaders(httpRequest, additionalHeaders);
         addHeaders(httpRequest, request.getHeaders());
+        addHeaders(httpRequest, additionalHeaders);
         onPrepareRequest(httpRequest);
         HttpParams httpParams = httpRequest.getParams();
         int timeoutMs = request.getTimeoutMs();
